@@ -1,0 +1,310 @@
+diff --git a/Makefile b/Makefile
+index d17cfca..98761fb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -32,7 +32,7 @@ OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o htm
+ # Uncomment options below for your particular OS:
+ 
+ # Linux defaults:
+-CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
++#CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+ #CFLAGS+=-O3 -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+ #LDFLAGS+=-s
+ 
+@@ -89,6 +89,12 @@ CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS
+ #LD=ld -d64
+ #LDFLAGS+=-lc
+ 
++# Uncomment for z/OS:
++prefix = ~/tree
++CC=xlclang
++CFLAGS+=-D_ALL_SOURCE=1 -qascii -q64 -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_OPEN_SYS_FILE_EXT=1
++LDFLAGS+=
++
+ #------------------------------------------------------------
+ 
+ all:	tree
+diff --git a/color.c b/color.c
+index ba2b072..d5a764b 100644
+--- a/color.c
++++ b/color.c
+@@ -214,7 +214,7 @@ void endcolor(void)
+     fputs(color_code[COL_ENDCODE],outfile);
+ }
+ 
+-int color(u_short mode, char *name, bool orphan, bool islink)
++int color(mode_t mode, char *name, bool orphan, bool islink)
+ {
+   struct extensions *e;
+   int l, xl;
+diff --git a/json.c b/json.c
+index c002f69..3e4140c 100644
+--- a/json.c
++++ b/json.c
+@@ -21,6 +21,10 @@ extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
+ extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
+ extern bool noindent, force_color, xdev, nolinks, noreport;
+ 
++#ifdef __MVS__
++extern bool tagflag, extflag;
++#endif
++
+ extern const int ifmt[];
+ extern const char fmt[], *ftype[];
+ 
+@@ -83,8 +87,14 @@ void json_fillinfo(struct _info *ent)
+   #ifdef __EMX__
+   if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"",ent->attr, prot(ent->attr));
+   #else
++  #ifdef __MVS__
++  if (pflag && !extflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent));
++  if (pflag && extflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s%s\",\"extended\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent), extended_attributes(ent));
++  if (tagflag) fprintf(outfile, ",\"filetag\":\"%s\"", filetag(ent));
++  #else
+   if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
+   #endif
++  #endif
+   if (uflag) fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
+   if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
+   if (sflag) {
+diff --git a/tree.c b/tree.c
+index 52afe8e..a975fd5 100644
+--- a/tree.c
++++ b/tree.c
+@@ -28,6 +28,9 @@ char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore
+ bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
+ bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
+ bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
++#ifdef __MVS__
++bool tagflag, extflag;
++#endif
+ bool noindent, force_color, nocolor, xdev, noreport, nolinks;
+ bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
+ bool reverse, fflinks;
+@@ -136,7 +139,9 @@ int main(int argc, char **argv)
+   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = FALSE;
+   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = FALSE;
+   duflag = pruneflag = metafirst = gitignore = FALSE;
+-
++  #ifdef __MVS__
++  tagflag = extflag = FALSE;
++  #endif
+   flimit = 0;
+   dirs = xmalloc(sizeof(int) * (maxdirs=PATH_MAX));
+   memset(dirs, 0, sizeof(int) * maxdirs);
+@@ -513,6 +518,19 @@ int main(int argc, char **argv)
+ 	      fflinks=TRUE;
+ 	      break;
+ 	    }
++            #ifdef __MVS__
++            if (!strcmp("--filetag",argv[i])) {
++	      j = strlen(argv[i])-1;
++              tagflag=TRUE;
++              break;
++            }
++            if (!strcmp("--extended",argv[i])) {
++	      j = strlen(argv[i])-1;
++              extflag=TRUE;
++              pflag=TRUE;
++              break;
++            }
++            #endif
+ 
+ 	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
+ 	    usage(1);
+@@ -616,6 +634,9 @@ void usage(int n)
+ 	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
+ 	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
+ 	"\t[--fromtabfile] [--fflinks] [--info] [--infofile[=]file] [--noreport]\n"
++        #ifdef __MVS__
++        "\t[--filetag] [--extended]\n"
++        #endif
+ 	"\t[--version] [--help] [--] [directory ...]\n");
+ 
+   if (n < 2) return;
+@@ -658,6 +679,10 @@ void usage(int n)
+ 	"  -F            Appends '/', '=', '*', '@', '|' or '>' as per ls -F.\n"
+ 	"  --inodes      Print inode number of each file.\n"
+ 	"  --device      Print device ID number to which each file belongs.\n"
++        #ifdef __MVS__
++        "  --filetag     Show filetag information.\n"
++        "  --extended    Show extended attributes with -p option.\n"
++        #endif
+ 	"  ------- Sorting options -------\n"
+ 	"  -v            Sort files alphanumerically by version.\n"
+ 	"  -t            Sort files by last modification time.\n"
+@@ -778,6 +803,12 @@ struct _info *getinfo(char *name, char *path)
+   ent->err    = NULL;
+   ent->child  = NULL;
+ 
++#ifdef __MVS__
++  ent->ft     = lst.st_tag;
++  ent->genvalue = lst.st_genvalue;
++  ent->hasAcl = lst.st_fspflag2;
++#endif
++
+   ent->atime  = lst.st_atime;
+   ent->ctime  = lst.st_ctime;
+   ent->mtime  = lst.st_mtime;
+@@ -1437,12 +1468,20 @@ char *fillinfo(char *buf, struct _info *ent)
+   #ifdef __EMX__
+   if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
+   #else
++  #ifdef __MVS__
++  if (pflag) n += sprintf(buf+n, " %s%s", prot(ent->mode), acl(ent));
++  if (pflag && extflag) n += sprintf(buf+n, " %s", extended_attributes(ent));
++  #else
+   if (pflag) n += sprintf(buf+n, " %s", prot(ent->mode));
+   #endif
++  #endif
+   if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
+   if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
+   if (sflag) n += psize(buf+n,ent->size);
+   if (Dflag) n += sprintf(buf+n, " %s", do_date(cflag? ent->ctime : ent->mtime));
++  #ifdef __MVS__
++  if (tagflag) n += sprintf(buf+n, " %s", filetag(ent));
++  #endif
+ 
+   if (buf[0] == ' ') {
+       buf[0] = '[';
+@@ -1451,3 +1490,62 @@ char *fillinfo(char *buf, struct _info *ent)
+ 
+   return buf;
+ }
++
++#ifdef __MVS__
++char* extended_attributes(struct _info *ent)
++{
++   static char genvalue[5] = "    ";
++   if (!ent->isdir){
++      strcpy(genvalue, "--s-");
++      if (ent->genvalue & __ST_APF_AUTH) genvalue[0] = 'a';
++      if (ent->genvalue & __ST_PROG_CTL) genvalue[1] = 'p';
++      if (ent->genvalue & __ST_NO_SHAREAS) genvalue[2] = '-';
++   }
++   else {
++      strcpy(genvalue, "    ");
++   }
++   return genvalue;
++}
++
++char *filetag(struct _info *ent)
++{
++   char filetag[_CSNAME_LEN_MAX] = "";
++   int  csname_size = _CSNAME_LEN_MAX;
++   char txtflag[6] = "     ";
++   char filetype[2] = " ";
++   static char buf[_CSNAME_LEN_MAX + sizeof(txtflag) + sizeof(filetype) + 2];
++   if (!ent->isdir) {
++      __toCSName(ent->ft.ft_ccsid, filetag);
++      if (ent->ft.ft_ccsid == FT_BINARY) {
++         strcpy(filetag, "binary");
++         strcpy(filetype, "b");
++         strcpy(txtflag, "T=off");
++      }
++      else
++      if (ent->ft.ft_ccsid == FT_UNTAGGED) {
++         strcpy(filetag, "untagged");
++         strcpy(filetype, "-");
++         strcpy(txtflag, "T=off");
++      }
++      else
++      if (ent->ft.ft_txtflag) {
++         strcpy(txtflag, "T=on ");
++         strcpy(filetype, "t");
++      }
++      else {
++         strcpy(txtflag, "T=off");
++         strcpy(filetype, "m");
++      }
++      csname_size = _CSNAME_LEN_MAX - strlen(filetag);
++   }
++   sprintf(buf, "%s %s%*.*s %s", filetype, filetag, csname_size, csname_size, "", txtflag);
++   return buf;
++}
++
++char *acl(struct _info *ent)
++{
++   static char aclindicator[2]=" ";
++   if (ent->hasAcl) aclindicator[0] = '+';
++   return aclindicator;
++}
++#endif
+diff --git a/tree.h b/tree.h
+index 3a81684..6e82724 100644
+--- a/tree.h
++++ b/tree.h
+@@ -55,6 +55,10 @@
+ #include <wchar.h>
+ #include <wctype.h>
+ 
++#ifdef __MVS__ /* for z/OS systems */
++#include <_Ccsid.h>
++#endif
++
+ #ifdef __ANDROID
+ #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
+ #endif
+@@ -105,6 +109,11 @@ struct _info {
+   #ifdef __EMX__
+   long attr;
+   #endif
++  #ifdef __MVS__
++  struct file_tag ft;
++  unsigned int genvalue;
++  char hasAcl;
++  #endif
+   char *err;
+   const char *tag;
+   char **comment;
+@@ -223,7 +232,11 @@ int psize(char *buf, off_t size);
+ char Ftype(mode_t mode);
+ struct _info *stat2info(struct stat *st);
+ char *fillinfo(char *buf, struct _info *ent);
+-
++#ifdef __MVS__
++char *extended_attributes(struct _info *ent);
++char *filetag(struct _info *ent);
++char *acl(struct _info *ent);
++#endif
+ /* list.c */
+ void null_intro(void);
+ void null_outtro(void);
+@@ -273,7 +286,7 @@ void json_report(struct totals tot);
+ 
+ /* color.c */
+ void parse_dir_colors();
+-int color(u_short mode, char *name, bool orphan, bool islink);
++int color(mode_t mode, char *name, bool orphan, bool islink);
+ void endcolor(void);
+ const char *getcharset(void);
+ void initlinedraw(int);
+diff --git a/xml.c b/xml.c
+index 2ecd221..09a8013 100644
+--- a/xml.c
++++ b/xml.c
+@@ -20,6 +20,9 @@
+ extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
+ extern bool Dflag, inodeflag, devflag, Rflag, cflag, duflag, siflag;
+ extern bool noindent, force_color, xdev, nolinks, noreport;
++#ifdef __MVS__
++extern bool tagflag, extflag;
++#endif
+ extern const char *charset;
+ 
+ extern const int ifmt[];
+@@ -75,8 +78,14 @@ void xml_fillinfo(struct _info *ent)
+   #ifdef __EMX__
+   if (pflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s\"",ent->attr, prot(ent->attr));
+   #else
++  #ifdef __MVS__
++  if (pflag && !extflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent));
++  if (pflag && extflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s%s\" extended=\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent), extended_attributes(ent));
++  if (tagflag) fprintf(outfile, " filetag=\"%s\"", filetag(ent));
++  #else
+   if (pflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
+   #endif
++  #endif
+   if (uflag) fprintf(outfile, " user=\"%s\"", uidtoname(ent->uid));
+   if (gflag) fprintf(outfile, " group=\"%s\"", gidtoname(ent->gid));
+   if (sflag) fprintf(outfile, " size=\"%lld\"", (long long int)(ent->size));
