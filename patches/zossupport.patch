@@ -68,7 +68,7 @@ index c002f69..3e4140c 100644
    if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
    if (sflag) {
 diff --git a/tree.c b/tree.c
-index 52afe8e..a975fd5 100644
+index 52afe8e..ad97c04 100644
 --- a/tree.c
 +++ b/tree.c
 @@ -28,6 +28,9 @@ char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore
@@ -92,7 +92,21 @@ index 52afe8e..a975fd5 100644
    flimit = 0;
    dirs = xmalloc(sizeof(int) * (maxdirs=PATH_MAX));
    memset(dirs, 0, sizeof(int) * maxdirs);
-@@ -513,6 +518,19 @@ int main(int argc, char **argv)
+@@ -350,6 +355,13 @@ int main(int argc, char **argv)
+ 	  }
+ 	  outfilename = argv[n++];
+ 	  break;
++        #ifdef __MVS__
++        case 'z':
++          tagflag=TRUE;
++          extflag=TRUE;
++          pflag=TRUE;
++          break;
++        #endif
+ 	case '-':
+ 	  if (j == 1) {
+ 	    if (!strcmp("--", argv[i])) {
+@@ -513,6 +525,19 @@ int main(int argc, char **argv)
  	      fflinks=TRUE;
  	      break;
  	    }
@@ -112,7 +126,18 @@ index 52afe8e..a975fd5 100644
  
  	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
  	    usage(1);
-@@ -616,6 +634,9 @@ void usage(int n)
+@@ -609,13 +634,20 @@ void usage(int n)
+   /*     123456789!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
+   /*     \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
+   fprintf(n < 2? stderr: stdout,
++        #ifdef __MVS__
++	"usage: tree [-acdfghilnpqrstuvxzCDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
++        #else
+ 	"usage: tree [-acdfghilnpqrstuvxACDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
++        #endif
+ 	"\t[-T title] [-o filename] [-P pattern] [-I pattern] [--gitignore]\n"
+ 	"\t[--gitfile[=]file] [--matchdirs] [--metafirst] [--ignore-case]\n"
+ 	"\t[--nolinks] [--hintro[=]file] [--houtro[=]file] [--inodes] [--device]\n"
  	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
  	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
  	"\t[--fromtabfile] [--fflinks] [--info] [--infofile[=]file] [--noreport]\n"
@@ -122,18 +147,20 @@ index 52afe8e..a975fd5 100644
  	"\t[--version] [--help] [--] [directory ...]\n");
  
    if (n < 2) return;
-@@ -658,6 +679,10 @@ void usage(int n)
+@@ -658,6 +690,12 @@ void usage(int n)
  	"  -F            Appends '/', '=', '*', '@', '|' or '>' as per ls -F.\n"
  	"  --inodes      Print inode number of each file.\n"
  	"  --device      Print device ID number to which each file belongs.\n"
 +        #ifdef __MVS__
++	"  ------- z/OS specific options -------\n"
++	"  -z            Enable all z/OS extensions; implicitly enables -p, --filetag and --extended.\n"
 +        "  --filetag     Show filetag information.\n"
-+        "  --extended    Show extended attributes with -p option.\n"
++        "  --extended    Show extended attributes; implicitly enables -p option.\n"
 +        #endif
  	"  ------- Sorting options -------\n"
  	"  -v            Sort files alphanumerically by version.\n"
  	"  -t            Sort files by last modification time.\n"
-@@ -778,6 +803,12 @@ struct _info *getinfo(char *name, char *path)
+@@ -778,6 +816,12 @@ struct _info *getinfo(char *name, char *path)
    ent->err    = NULL;
    ent->child  = NULL;
  
@@ -146,7 +173,7 @@ index 52afe8e..a975fd5 100644
    ent->atime  = lst.st_atime;
    ent->ctime  = lst.st_ctime;
    ent->mtime  = lst.st_mtime;
-@@ -1437,12 +1468,20 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1437,12 +1481,20 @@ char *fillinfo(char *buf, struct _info *ent)
    #ifdef __EMX__
    if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
    #else
@@ -167,7 +194,7 @@ index 52afe8e..a975fd5 100644
  
    if (buf[0] == ' ') {
        buf[0] = '[';
-@@ -1451,3 +1490,62 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1451,3 +1503,62 @@ char *fillinfo(char *buf, struct _info *ent)
  
    return buf;
  }
