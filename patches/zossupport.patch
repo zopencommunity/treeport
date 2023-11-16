@@ -1,29 +1,3 @@
-diff --git a/Makefile b/Makefile
-index d17cfca..98761fb 100644
---- a/Makefile
-+++ b/Makefile
-@@ -32,7 +32,7 @@ OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o htm
- # Uncomment options below for your particular OS:
- 
- # Linux defaults:
--CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-+#CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
- #CFLAGS+=-O3 -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
- #LDFLAGS+=-s
- 
-@@ -89,6 +89,12 @@ CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS
- #LD=ld -d64
- #LDFLAGS+=-lc
- 
-+# Uncomment for z/OS:
-+prefix = ~/tree
-+CC=xlclang
-+CFLAGS+=-D_ALL_SOURCE=1 -qascii -q64 -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_OPEN_SYS_FILE_EXT=1
-+LDFLAGS+=
-+
- #------------------------------------------------------------
- 
- all:	tree
 diff --git a/color.c b/color.c
 index ba2b072..d5a764b 100644
 --- a/color.c

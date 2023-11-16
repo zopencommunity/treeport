@@ -1,11 +1,15 @@
 export ZOPEN_STABLE_URL="https://github.com/Old-Man-Programmer/tree.git"
-export ZOPEN_STABLE_DEPS="make"
+export ZOPEN_STABLE_DEPS="make coreutils"
 export ZOPEN_BUILD_LINE="STABLE"
 export ZOPEN_RUNTIME_DEPS="bash"
-export ZOPEN_INSTALL=skip
 export ZOPEN_COMP=XLCLANG
 export ZOPEN_CONFIGURE="skip"
-export ZOPEN_EXTRA_CFLAGS="-D_ALL_SOURCE=1 -qascii -q64 -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_OPEN_SYS_FILE_EXT=1"
+export ZOPEN_CHECK="skip"
+export ZOPEN_INSTALL_OPTS="install PREFIX=\$ZOPEN_INSTALL_DIR"
+
+zopen_pre_patch() {
+  export CFLAGS="$CFLAGS $CPPFLAGS"
+}
 
 zopen_check_results()
 {
@@ -22,7 +26,5 @@ zopen_check_results()
 
 zopen_get_version()
 {
-  # Modify to echo the version of your tool/library
-  # Rather than hardcoding the version, obtain the version by running the tool/library
-  ./tree/tree --version
+  ./tree --version | cut -f2 -d' ' | sed -e "s/v//g"
 }
