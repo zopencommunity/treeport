@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index d17cfca..d2e232a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -94,7 +94,7 @@ CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS
+ all:	tree
+ 
+ tree:	$(OBJS)
+-	$(CC) $(LDFLAGS) -o $(TREE_DEST) $(OBJS)
++	$(CC) $(LDFLAGS) -o $(TREE_DEST) $(OBJS) $(LIBS)
+ 
+ $(OBJS): %.o:	%.c tree.h
+ 	$(CC) $(CFLAGS) -c -o $@ $<
