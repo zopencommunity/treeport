@@ -1,0 +1,42 @@
+diff --git a/doc/tree.1 b/doc/tree.1
+index 17ecd32..7b3f4e0 100644
+--- a/doc/tree.1
++++ b/doc/tree.1
+@@ -22,7 +22,7 @@
+ tree \- list contents of directories in a tree-like format.
+ .SH SYNOPSIS
+ \fBtree\fP
+-[\fB-acdfghilnpqrstuvxACDFJQNSUX\fP]
++[\fB-acdfghilnpqrstuvxzACDFJQNSUX\fP]
+ [\fB-L\fP \fIlevel\fP [\fB-R\fP]]
+ [\fB-H\fP \fIbaseHREF\fP]
+ [\fB-T\fP \fItitle\fP]
+@@ -57,6 +57,8 @@ tree \- list contents of directories in a tree-like format.
+ [\fB--version\fP]
+ [\fB--help\fP]
+ [\fB--\fP] [\fIdirectory\fP ...]
++[\fB--extended\fP]
++[\fB--filetag\fP]
+ 
+ .br
+ .SH DESCRIPTION
+@@ -269,6 +271,19 @@ Prints the inode number of the file or directory
+ .B --device
+ Prints the device number to which the file or directory belongs
+ .PP
++.TP
++.B --extended
++Prints the extended attributes with the protection bits, as per ls -E.
++It implicitly enables -p
++.PP
++.TP
++.B --filetag
++Prints the filetag information for the files, as per ls -T
++.PP
++.TP
++.B -z
++Convenience option that enables both --extended and --filetag
++.PP
+ 
+ .SH SORTING OPTIONS
+ 
