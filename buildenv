@@ -1,4 +1,4 @@
-# bump: tree-version /BASH_VERSION="(.*)"/ https://github.com/Old-Man-Programmer/tree.git|semver:*
+# bump: tree-version /TREE_VERSION="(.*)"/ https://github.com/Old-Man-Programmer/tree.git|semver:*
 TREE_VERSION="2.1.0"
 
 export ZOPEN_BUILD_LINE="STABLE"
