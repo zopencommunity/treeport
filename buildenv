@@ -1,6 +1,10 @@
-export ZOPEN_STABLE_URL="https://github.com/Old-Man-Programmer/tree.git"
-export ZOPEN_STABLE_DEPS="make coreutils"
+# bump: tree-version /TREE_VERSION="(.*)"/ https://github.com/Old-Man-Programmer/tree.git|semver:*
+TREE_VERSION="2.1.0"
+
 export ZOPEN_BUILD_LINE="STABLE"
+export ZOPEN_STABLE_URL="https://github.com/Old-Man-Programmer/tree.git"
+export ZOPEN_STABLE_TAG="$TREE_VERSION"
+export ZOPEN_STABLE_DEPS="make coreutils"
 export ZOPEN_RUNTIME_DEPS="bash"
 export ZOPEN_COMP=XLCLANG
 export ZOPEN_CONFIGURE="skip"
