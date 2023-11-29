@@ -1,4 +1,6 @@
-tree
+[![Automatic version updates](https://github.com/ZOSOpenTools/treeport/actions/workflows/bump.yml/badge.svg)](https://github.com/ZOSOpenTools/treeport/actions/workflows/bump.yml)
+
+# tree
 
 The tree command is a very usefull utility that will display directories and files in a tree like structure.
 This version has been enhanced to support z/OS specific functions:
