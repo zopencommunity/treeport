@@ -168,7 +168,7 @@ index 52afe8e..ad97c04 100644
  
    if (buf[0] == ' ') {
        buf[0] = '[';
-@@ -1451,3 +1503,62 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1451,3 +1503,63 @@ char *fillinfo(char *buf, struct _info *ent)
  
    return buf;
  }
@@ -228,6 +228,7 @@ index 52afe8e..ad97c04 100644
 +{
 +   static char aclindicator[2]=" ";
 +   if (ent->hasAcl) aclindicator[0] = '+';
++   else aclindicator[0] = ' ';
 +   return aclindicator;
 +}
 +#endif
