@@ -1,5 +1,5 @@
 # bump: tree-version /TREE_VERSION="(.*)"/ https://github.com/Old-Man-Programmer/tree.git|semver:*
-TREE_VERSION="2.1.1"
+TREE_VERSION="2.1.2"
 
 export ZOPEN_BUILD_LINE="STABLE"
 export ZOPEN_STABLE_URL="https://github.com/Old-Man-Programmer/tree.git"
