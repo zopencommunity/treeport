@@ -42,7 +42,7 @@ index c002f69..3e4140c 100644
    if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
    if (sflag) {
 diff --git a/tree.c b/tree.c
-index 52afe8e..ad97c04 100644
+index 52afe8e..0eaec07 100644
 --- a/tree.c
 +++ b/tree.c
 @@ -28,6 +28,9 @@ char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore
@@ -134,7 +134,34 @@ index 52afe8e..ad97c04 100644
  	"  ------- Sorting options -------\n"
  	"  -v            Sort files alphanumerically by version.\n"
  	"  -t            Sort files by last modification time.\n"
-@@ -778,6 +816,12 @@ struct _info *getinfo(char *name, char *path)
+@@ -727,11 +765,18 @@ struct _info *getinfo(char *name, char *path)
+   struct _info *ent;
+   struct stat st, lst;
+   int len, rs, isdir;
++#ifdef __MVS__
++  int islnk;
++#endif
+ 
+   if (lbuf == NULL) lbuf = xmalloc(lbufsize = PATH_MAX);
+ 
+   if (lstat(path,&lst) < 0) return NULL;
+ 
++#ifdef __MVS__
++  islnk = (lst.st_mode & S_IFMT) == S_IFLNK;
++#endif
++
+   if ((lst.st_mode & S_IFMT) == S_IFLNK) {
+     if ((rs = stat(path,&st)) < 0) memset(&st, 0, sizeof(st));
+   } else {
+@@ -758,6 +803,7 @@ struct _info *getinfo(char *name, char *path)
+ /*    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue; */
+ #endif
+ 
++
+   ent = (struct _info *)xmalloc(sizeof(struct _info));
+   memset(ent, 0, sizeof(struct _info));
+ 
+@@ -778,6 +824,13 @@ struct _info *getinfo(char *name, char *path)
    ent->err    = NULL;
    ent->child  = NULL;
  
@@ -142,12 +169,13 @@ index 52afe8e..ad97c04 100644
 +  ent->ft     = lst.st_tag;
 +  ent->genvalue = lst.st_genvalue;
 +  ent->hasAcl = lst.st_fspflag2;
++  ent->islnk  = islnk;
 +#endif
 +
    ent->atime  = lst.st_atime;
    ent->ctime  = lst.st_ctime;
    ent->mtime  = lst.st_mtime;
-@@ -1437,12 +1481,20 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1437,12 +1490,20 @@ char *fillinfo(char *buf, struct _info *ent)
    #ifdef __EMX__
    if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
    #else
@@ -168,7 +196,7 @@ index 52afe8e..ad97c04 100644
  
    if (buf[0] == ' ') {
        buf[0] = '[';
-@@ -1451,3 +1503,63 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1451,3 +1512,63 @@ char *fillinfo(char *buf, struct _info *ent)
  
    return buf;
  }
@@ -177,7 +205,7 @@ index 52afe8e..ad97c04 100644
 +char* extended_attributes(struct _info *ent)
 +{
 +   static char genvalue[5] = "    ";
-+   if (!ent->isdir){
++   if (!ent->isdir & !ent->islnk){
 +      strcpy(genvalue, "--s-");
 +      if (ent->genvalue & __ST_APF_AUTH) genvalue[0] = 'a';
 +      if (ent->genvalue & __ST_PROG_CTL) genvalue[1] = 'p';
@@ -196,7 +224,7 @@ index 52afe8e..ad97c04 100644
 +   char txtflag[6] = "     ";
 +   char filetype[2] = " ";
 +   static char buf[_CSNAME_LEN_MAX + sizeof(txtflag) + sizeof(filetype) + 2];
-+   if (!ent->isdir) {
++   if (!ent->isdir & !ent->islnk) {
 +      __toCSName(ent->ft.ft_ccsid, filetag);
 +      if (ent->ft.ft_ccsid == FT_BINARY) {
 +         strcpy(filetag, "binary");
@@ -233,7 +261,7 @@ index 52afe8e..ad97c04 100644
 +}
 +#endif
 diff --git a/tree.h b/tree.h
-index 3a81684..6e82724 100644
+index 3a81684..6e3ee6c 100644
 --- a/tree.h
 +++ b/tree.h
 @@ -55,6 +55,10 @@
@@ -247,11 +275,12 @@ index 3a81684..6e82724 100644
  #ifdef __ANDROID
  #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
  #endif
-@@ -105,6 +109,11 @@ struct _info {
+@@ -105,6 +109,12 @@ struct _info {
    #ifdef __EMX__
    long attr;
    #endif
 +  #ifdef __MVS__
++  bool islnk;
 +  struct file_tag ft;
 +  unsigned int genvalue;
 +  char hasAcl;
@@ -259,7 +288,7 @@ index 3a81684..6e82724 100644
    char *err;
    const char *tag;
    char **comment;
-@@ -223,7 +232,11 @@ int psize(char *buf, off_t size);
+@@ -223,7 +233,11 @@ int psize(char *buf, off_t size);
  char Ftype(mode_t mode);
  struct _info *stat2info(struct stat *st);
  char *fillinfo(char *buf, struct _info *ent);
@@ -272,7 +301,7 @@ index 3a81684..6e82724 100644
  /* list.c */
  void null_intro(void);
  void null_outtro(void);
-@@ -273,7 +286,7 @@ void json_report(struct totals tot);
+@@ -273,7 +287,7 @@ void json_report(struct totals tot);
  
  /* color.c */
  void parse_dir_colors();
