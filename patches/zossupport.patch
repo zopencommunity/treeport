@@ -42,7 +42,7 @@ index c002f69..3e4140c 100644
    if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
    if (sflag) {
 diff --git a/tree.c b/tree.c
-index 52afe8e..0eaec07 100644
+index 52afe8e..59abd98 100644
 --- a/tree.c
 +++ b/tree.c
 @@ -28,6 +28,9 @@ char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore
@@ -196,7 +196,7 @@ index 52afe8e..0eaec07 100644
  
    if (buf[0] == ' ') {
        buf[0] = '[';
-@@ -1451,3 +1512,63 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1451,3 +1512,64 @@ char *fillinfo(char *buf, struct _info *ent)
  
    return buf;
  }
@@ -210,6 +210,7 @@ index 52afe8e..0eaec07 100644
 +      if (ent->genvalue & __ST_APF_AUTH) genvalue[0] = 'a';
 +      if (ent->genvalue & __ST_PROG_CTL) genvalue[1] = 'p';
 +      if (ent->genvalue & __ST_NO_SHAREAS) genvalue[2] = '-';
++      if (ent->genvalue & __ST_SHARE_LIB) genvalue[3] = 'l';
 +   }
 +   else {
 +      strcpy(genvalue, "    ");
