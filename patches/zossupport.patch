@@ -1,32 +1,18 @@
-diff --git a/color.c b/color.c
-index ba2b072..d5a764b 100644
---- a/color.c
-+++ b/color.c
-@@ -214,7 +214,7 @@ void endcolor(void)
-     fputs(color_code[COL_ENDCODE],outfile);
- }
- 
--int color(u_short mode, char *name, bool orphan, bool islink)
-+int color(mode_t mode, char *name, bool orphan, bool islink)
- {
-   struct extensions *e;
-   int l, xl;
 diff --git a/json.c b/json.c
-index c002f69..3e4140c 100644
+index 2524e4c..79aa968 100644
 --- a/json.c
 +++ b/json.c
-@@ -21,6 +21,10 @@ extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
- extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
- extern bool noindent, force_color, xdev, nolinks, noreport;
+@@ -19,6 +19,9 @@
  
+ extern bool dflag, pflag, sflag, uflag, gflag, Dflag, inodeflag, devflag;
+ extern bool cflag, hflag, siflag, duflag, noindent;
 +#ifdef __MVS__
 +extern bool tagflag, extflag;
 +#endif
-+
- extern const int ifmt[];
- extern const char fmt[], *ftype[];
  
-@@ -83,8 +87,14 @@ void json_fillinfo(struct _info *ent)
+ extern const mode_t ifmt[];
+ extern const char *ftype[];
+@@ -79,8 +82,14 @@ void json_fillinfo(struct _info *ent)
    #ifdef __EMX__
    if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"",ent->attr, prot(ent->attr));
    #else
@@ -42,102 +28,126 @@ index c002f69..3e4140c 100644
    if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
    if (sflag) {
 diff --git a/tree.c b/tree.c
-index 52afe8e..0eaec07 100644
+index 13e8c3d..f7133c7 100644
 --- a/tree.c
 +++ b/tree.c
-@@ -28,6 +28,9 @@ char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore
- bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
- bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
- bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
+@@ -31,6 +31,9 @@ bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag, hyperflag;
+ bool noindent, force_color, nocolor, xdev, noreport, nolinks;
+ bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
+ bool reverse, fflinks, htmloffset;
 +#ifdef __MVS__
 +bool tagflag, extflag;
 +#endif
- bool noindent, force_color, nocolor, xdev, noreport, nolinks;
- bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
- bool reverse, fflinks;
-@@ -136,7 +139,9 @@ int main(int argc, char **argv)
-   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = FALSE;
-   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = FALSE;
-   duflag = pruneflag = metafirst = gitignore = FALSE;
--
+ int flimit;
+ 
+ struct listingcalls lc;
+@@ -142,6 +145,9 @@ int main(int argc, char **argv)
+   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = false;
+   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = false;
+   duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = false;
 +  #ifdef __MVS__
-+  tagflag = extflag = FALSE;
++  tagflag = extflag = false;
 +  #endif
+ 
    flimit = 0;
-   dirs = xmalloc(sizeof(int) * (maxdirs=PATH_MAX));
-   memset(dirs, 0, sizeof(int) * maxdirs);
-@@ -350,6 +355,13 @@ int main(int argc, char **argv)
+   dirs = xmalloc(sizeof(int) * (size_t)(maxdirs=PATH_MAX));
+@@ -368,6 +374,19 @@ int main(int argc, char **argv)
  	  }
  	  outfilename = argv[n++];
  	  break;
 +        #ifdef __MVS__
 +        case 'z':
-+          tagflag=TRUE;
-+          extflag=TRUE;
-+          pflag=TRUE;
++          tagflag = (opt_toggle? !tagflag : true);
++          extflag = (opt_toggle? !extflag : true);
++          pflag = (opt_toggle? !pflag : true);
++          break;
++        #else
++        case 'z':
++          fprintf(stderr,"tree: -z only works on z/OS.\n");
++          exit(1);
 +          break;
 +        #endif
++
  	case '-':
  	  if (j == 1) {
  	    if (!strcmp("--", argv[i])) {
-@@ -513,6 +525,19 @@ int main(int argc, char **argv)
- 	      fflinks=TRUE;
+@@ -533,6 +552,30 @@ int main(int argc, char **argv)
+ 	      hyperflag = (opt_toggle? !hyperflag : true);
  	      break;
  	    }
 +            #ifdef __MVS__
 +            if (!strcmp("--filetag",argv[i])) {
-+	      j = strlen(argv[i])-1;
-+              tagflag=TRUE;
++              j = strlen(argv[i])-1;
++              tagflag = (opt_toggle? !tagflag : true);
 +              break;
 +            }
 +            if (!strcmp("--extended",argv[i])) {
-+	      j = strlen(argv[i])-1;
-+              extflag=TRUE;
-+              pflag=TRUE;
++              j = strlen(argv[i])-1;
++              extflag = (opt_toggle? !extflag : true);
++              pflag = (opt_toggle? !pflag : true);
 +              break;
 +            }
-+            #endif
- 
- 	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
- 	    usage(1);
-@@ -609,13 +634,20 @@ void usage(int n)
++            #else
++            if (!strcmp("--filetag",argv[i])) {
++              fprintf(stderr,"tree: --filetag only works on z/OS.\n");
++              exit(1);
++              break;
++           }
++           if (!strcmp("--extended",argv[i])) {
++              fprintf(stderr,"tree: --extended only works on z/OS.\n");
++              exit(1);
++              break;
++           }
++           #endif
+ 	    if ((arg = long_arg(argv, i, &j, &n, "--scheme")) != NULL) {
+ 	      if (strchr(arg, ':') == NULL) {
+ 		sprintf(xpattern, "%s://", arg);
+@@ -662,14 +705,15 @@ void usage(int n)
    /*     123456789!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
    /*     \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
-   fprintf(n < 2? stderr: stdout,
-+        #ifdef __MVS__
-+	"usage: tree [-acdfghilnpqrstuvxzCDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
-+        #else
- 	"usage: tree [-acdfghilnpqrstuvxACDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
-+        #endif
- 	"\t[-T title] [-o filename] [-P pattern] [-I pattern] [--gitignore]\n"
- 	"\t[--gitfile[=]file] [--matchdirs] [--metafirst] [--ignore-case]\n"
- 	"\t[--nolinks] [--hintro[=]file] [--houtro[=]file] [--inodes] [--device]\n"
- 	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
- 	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
- 	"\t[--fromtabfile] [--fflinks] [--info] [--infofile[=]file] [--noreport]\n"
-+        #ifdef __MVS__
-+        "\t[--filetag] [--extended]\n"
-+        #endif
- 	"\t[--version] [--help] [--] [directory ...]\n");
+   fancy(n < 2? stderr: stdout,
+-	"usage: \btree\r [\b-acdfghilnpqrstuvxACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n"
++	"usage: \btree\r [\b-acdfghilnpqrstuvxzACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n"
+ 	"\t[\b-T\r \ftitle\r] [\b-o\r \ffilename\r] [\b-P\r \fpattern\r] [\b-I\r \fpattern\r] [\b--gitignore\r]\n"
+ 	"\t[\b--gitfile\r[\b=\r]\ffile\r] [\b--matchdirs\r] [\b--metafirst\r] [\b--ignore-case\r]\n"
+ 	"\t[\b--nolinks\r] [\b--hintro\r[\b=\r]\ffile\r] [\b--houtro\r[\b=\r]\ffile\r] [\b--inodes\r] [\b--device\r]\n"
+ 	"\t[\b--sort\r[\b=\r]\fname\r] [\b--dirsfirst\r] [\b--filesfirst\r] [\b--filelimit\r[\b=\r]\f#\r] [\b--si\r]\n"
+ 	"\t[\b--du\r] [\b--prune\r] [\b--charset\r[\b=\r]\fX\r] [\b--timefmt\r[\b=\r]\fformat\r] [\b--fromfile\r]\n"
+ 	"\t[\b--fromtabfile\r] [\b--fflinks\r] [\b--info\r] [\b--infofile\r[\b=\r]\ffile\r] [\b--noreport\r]\n"
+-	"\t[\b--hyperlink\r] [\b--scheme\r[\b=\r]\fschema\r] [\b--authority\r[\b=\r]\fhost\r] [\b--opt-toggle\r]\n"
++	"\t[\b--hyperlink\r] [\b--filetag\r] [\b--extended\r] [\b--scheme\r[\b=\r]\fschema\r]\n" 
++  "\t[\b--authority\r[\b=\r]\fhost\r] [\b--opt-toggle\r]\n"
+ 	"\t[\b--version\r] [\b--help\r] [\b--\r] [\fdirectory\r \b...\r]\n");
  
    if (n < 2) return;
-@@ -658,6 +690,12 @@ void usage(int n)
- 	"  -F            Appends '/', '=', '*', '@', '|' or '>' as per ls -F.\n"
- 	"  --inodes      Print inode number of each file.\n"
- 	"  --device      Print device ID number to which each file belongs.\n"
-+        #ifdef __MVS__
-+	"  ------- z/OS specific options -------\n"
-+	"  -z            Enable all z/OS extensions; implicitly enables -p, --filetag and --extended.\n"
-+        "  --filetag     Show filetag information.\n"
-+        "  --extended    Show extended attributes; implicitly enables -p option.\n"
-+        #endif
- 	"  ------- Sorting options -------\n"
- 	"  -v            Sort files alphanumerically by version.\n"
- 	"  -t            Sort files by last modification time.\n"
-@@ -727,11 +765,18 @@ struct _info *getinfo(char *name, char *path)
-   struct _info *ent;
-   struct stat st, lst;
-   int len, rs, isdir;
+@@ -711,7 +755,12 @@ void usage(int n)
+ 	"  \b--timefmt\r \ffmt\r Print and format time according to the format \ffmt\r.\n"
+ 	"  \b-F\r            Appends '\b/\r', '\b=\r', '\b*\r', '\b@\r', '\b|\r' or '\b>\r' as per \bls -F\r.\n"
+ 	"  \b--inodes\r      Print inode number of each file.\n"
+-	"  \b--device\r      Print device ID number to which each file belongs.\n");
++	"  \b--device\r      Print device ID number to which each file belongs.\n"
++  "  \b------- z/OS only specific file options -------\n"
++  "  \b-z\r            Enable z/OS specific --filetag and --extended options.\n"
++  "  \b--filetag\r     Show filetag information for file.\n"
++  "  \b--extended\r    Show extended attributes for file. Implicitly enables -p option.\n"
++  );
+   fancy(stdout,
+ 	"  \b------- Sorting options -------\r\n"
+ 	"  \b-v\r            Sort files alphanumerically by version.\n"
+@@ -747,7 +796,8 @@ void usage(int n)
+ 	"  \b--opt-toggle\r  Enable option toggling.\n"
+ 	"  \b--version\r     Print version and exit.\n"
+ 	"  \b--help\r        Print usage and this help message and exit.\n"
+-	"  \b--\r            Options processing terminator.\n");
++	"  \b--\r            Options processing terminator.\n"
++  );
+   exit(0);
+ }
+ 
+@@ -788,11 +838,18 @@ struct _info *getinfo(const char *name, char *path)
+   ssize_t len;
+   int rs;
+   bool isdir;
 +#ifdef __MVS__
 +  int islnk;
 +#endif
@@ -153,15 +163,7 @@ index 52afe8e..0eaec07 100644
    if ((lst.st_mode & S_IFMT) == S_IFLNK) {
      if ((rs = stat(path,&st)) < 0) memset(&st, 0, sizeof(st));
    } else {
-@@ -758,6 +803,7 @@ struct _info *getinfo(char *name, char *path)
- /*    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue; */
- #endif
- 
-+
-   ent = (struct _info *)xmalloc(sizeof(struct _info));
-   memset(ent, 0, sizeof(struct _info));
- 
-@@ -778,6 +824,13 @@ struct _info *getinfo(char *name, char *path)
+@@ -839,6 +896,13 @@ struct _info *getinfo(const char *name, char *path)
    ent->err    = NULL;
    ent->child  = NULL;
  
@@ -175,7 +177,7 @@ index 52afe8e..0eaec07 100644
    ent->atime  = lst.st_atime;
    ent->ctime  = lst.st_ctime;
    ent->mtime  = lst.st_mtime;
-@@ -1437,12 +1490,20 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1501,12 +1565,20 @@ char *fillinfo(char *buf, const struct _info *ent)
    #ifdef __EMX__
    if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
    #else
@@ -196,13 +198,13 @@ index 52afe8e..0eaec07 100644
  
    if (buf[0] == ' ') {
        buf[0] = '[';
-@@ -1451,3 +1512,63 @@ char *fillinfo(char *buf, struct _info *ent)
+@@ -1515,3 +1587,64 @@ char *fillinfo(char *buf, const struct _info *ent)
  
    return buf;
  }
 +
 +#ifdef __MVS__
-+char* extended_attributes(struct _info *ent)
++char *extended_attributes(const struct _info *ent)
 +{
 +   static char genvalue[5] = "    ";
 +   if (!ent->isdir & !ent->islnk){
@@ -210,6 +212,7 @@ index 52afe8e..0eaec07 100644
 +      if (ent->genvalue & __ST_APF_AUTH) genvalue[0] = 'a';
 +      if (ent->genvalue & __ST_PROG_CTL) genvalue[1] = 'p';
 +      if (ent->genvalue & __ST_NO_SHAREAS) genvalue[2] = '-';
++      if (ent->genvalue & __ST_SHARE_LIB) genvalue[3] = 'l';
 +   }
 +   else {
 +      strcpy(genvalue, "    ");
@@ -217,7 +220,7 @@ index 52afe8e..0eaec07 100644
 +   return genvalue;
 +}
 +
-+char *filetag(struct _info *ent)
++char *filetag(const struct _info *ent)
 +{
 +   char filetag[_CSNAME_LEN_MAX] = "";
 +   int  csname_size = _CSNAME_LEN_MAX;
@@ -252,7 +255,7 @@ index 52afe8e..0eaec07 100644
 +   return buf;
 +}
 +
-+char *acl(struct _info *ent)
++char *acl(const struct _info *ent)
 +{
 +   static char aclindicator[2]=" ";
 +   if (ent->hasAcl) aclindicator[0] = '+';
@@ -261,21 +264,20 @@ index 52afe8e..0eaec07 100644
 +}
 +#endif
 diff --git a/tree.h b/tree.h
-index 3a81684..6e3ee6c 100644
+index 6bf2afe..abb0946 100644
 --- a/tree.h
 +++ b/tree.h
-@@ -55,6 +55,10 @@
+@@ -55,6 +55,9 @@
  #include <wchar.h>
  #include <wctype.h>
- 
-+#ifdef __MVS__ /* for z/OS systems */
+ #include <stdbool.h>
++#ifdef __MVS__
 +#include <_Ccsid.h>
 +#endif
-+
+ 
  #ifdef __ANDROID
  #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
- #endif
-@@ -105,6 +109,12 @@ struct _info {
+@@ -102,6 +105,12 @@ struct _info {
    #ifdef __EMX__
    long attr;
    #endif
@@ -288,43 +290,34 @@ index 3a81684..6e3ee6c 100644
    char *err;
    const char *tag;
    char **comment;
-@@ -223,7 +233,11 @@ int psize(char *buf, off_t size);
+@@ -218,6 +227,11 @@ int psize(char *buf, off_t size);
  char Ftype(mode_t mode);
- struct _info *stat2info(struct stat *st);
- char *fillinfo(char *buf, struct _info *ent);
--
+ struct _info *stat2info(const struct stat *st);
+ char *fillinfo(char *buf, const struct _info *ent);
 +#ifdef __MVS__
-+char *extended_attributes(struct _info *ent);
-+char *filetag(struct _info *ent);
-+char *acl(struct _info *ent);
++char *extended_attributes(const struct _info *ent);
++char *filetag(const struct _info *ent);
++char *acl(const struct _info *ent);
 +#endif
+ 
  /* list.c */
  void null_intro(void);
- void null_outtro(void);
-@@ -273,7 +287,7 @@ void json_report(struct totals tot);
- 
- /* color.c */
- void parse_dir_colors();
--int color(u_short mode, char *name, bool orphan, bool islink);
-+int color(mode_t mode, char *name, bool orphan, bool islink);
- void endcolor(void);
- const char *getcharset(void);
- void initlinedraw(int);
 diff --git a/xml.c b/xml.c
-index 2ecd221..09a8013 100644
+index 766d458..a1a11a5 100644
 --- a/xml.c
 +++ b/xml.c
-@@ -20,6 +20,9 @@
- extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
- extern bool Dflag, inodeflag, devflag, Rflag, cflag, duflag, siflag;
- extern bool noindent, force_color, xdev, nolinks, noreport;
+@@ -21,7 +21,9 @@
+ extern bool dflag, pflag, sflag, uflag, gflag;
+ extern bool Dflag, inodeflag, devflag, cflag, duflag;
+ extern bool noindent;
+-
 +#ifdef __MVS__
 +extern bool tagflag, extflag;
 +#endif
  extern const char *charset;
- 
- extern const int ifmt[];
-@@ -75,8 +78,14 @@ void xml_fillinfo(struct _info *ent)
+ extern const mode_t ifmt[];
+ extern const char *ftype[];
+@@ -71,8 +73,14 @@ void xml_fillinfo(struct _info *ent)
    #ifdef __EMX__
    if (pflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s\"",ent->attr, prot(ent->attr));
    #else
