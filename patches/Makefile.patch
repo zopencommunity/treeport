@@ -1,17 +1,44 @@
 diff --git a/Makefile b/Makefile
-index d17cfca..d2e232a 100644
+index 5d5c3ef..2cf0c72 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -26,7 +26,7 @@ TREE_DEST=tree
+@@ -27,18 +27,18 @@ TREE_DEST=tree
  DESTDIR=${PREFIX}/bin
  MAN=tree.1
  # Probably needs to be ${PREFIX}/share/man for most systems now
 -MANDIR=${PREFIX}/man
 +MANDIR=${PREFIX}/share/man
  OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o
-
+ 
  # Uncomment options below for your particular OS:
-@@ -94,7 +94,7 @@ CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS
+ 
+ # Linux defaults:
+-LDFLAGS?=-s
++#LDFLAGS?=-s
+ #CFLAGS?=-ggdb
+-CFLAGS?=-O3
+-CFLAGS+=-std=c11 -Wpedantic -Wall -Wextra -Wstrict-prototypes -Wshadow -Wconversion
++#CFLAGS?=-O3
++#CFLAGS+=-std=c11 -Wpedantic -Wall -Wextra -Wstrict-prototypes -Wshadow -Wconversion
+ # _LARGEFILE64_SOURCE may be considered obsolete
+-CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
++#CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ 
+ # Uncomment for FreeBSD:
+ #CC=cc
+@@ -106,12 +106,19 @@ CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+ #CFLAGS+=-std=c89 -pedantic -Wall -Wno-error=int-conversion
+ #CPPFLAGS+=-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+ 
++# Uncomment for z/OS
++CC=clang
++CFLAGS+=-fzos-le-char-mode=ascii -std=gnu11 -mnocsect -fno-short-enums -fno-builtin-malloc \
++        -fno-builtin-calloc -fno-builtin-realloc -m64 -O3 -DNSIG=42 -D_XOPEN_SOURCE=600 \
++        -D_ALL_SOURCE -D_OPEN_SYS_FILE_EXT=1 -D_AE_BIMODAL=1 -D_ENHANCED_ASCII_EXT=0xFFFFFFFF 
++MANDIR=${PREFIX}/share/man
++
+ #------------------------------------------------------------
+ 
  all:	tree
  
  tree:	$(OBJS)
@@ -19,4 +46,4 @@ index d17cfca..d2e232a 100644
 +	$(CC) $(LDFLAGS) -o $(TREE_DEST) $(OBJS) $(LIBS)
  
  $(OBJS): %.o:	%.c tree.h
- 	$(CC) $(CFLAGS) -c -o $@ $<
+ 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
